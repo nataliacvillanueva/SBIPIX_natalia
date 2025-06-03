@@ -9,4 +9,12 @@ __uri__ = "https://github.com/patriglesias/sbipix"
 __license__ = "MIT"
 __description__ = "Simulation-based inference for pixel-level stellar population properties from galaxy SEDs"
 
-from .core import *
+# Import main class
+from .sbipix import SBIPIX
+
+# Import key utilities
+from .utils.sed_utils import *
+from .utils.cosmology import *
+
+# Import plotting functions
+from .plotting.diagnostics  import *
