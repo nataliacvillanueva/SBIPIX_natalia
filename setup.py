@@ -41,6 +41,7 @@ INSTALL_REQUIRES = [
     "astroquery>=0.4.6",
     "regions>=0.8",
     "spectres>=2.2.0",
+    "dense_basis>=0.1.8"
 ]
 
 # Optional dependencies for specific features
