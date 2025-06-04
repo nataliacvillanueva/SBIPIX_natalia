@@ -23,7 +23,7 @@ from .train.simulator import generate_atlas_parametric
 from .plotting.diagnostics import plot_test_performance
 
 
-class SBIPIX:
+class sbipix():
     """
     A class for simulation-based inference pipeline for studying stellar population 
     properties on integrated/resolved galaxies from JWST.
@@ -76,6 +76,8 @@ class SBIPIX:
         Mean uncertainty distributions per magnitude bin and filter
     stds_sigma_obs : np.ndarray
         Standard deviation of uncertainty distributions
+    percentiles : np.ndarray
+        Percentiles for magnitude bins used to assign uncertainties
     limits : np.ndarray
         1σ depth limits for each filter
     
@@ -117,8 +119,7 @@ class SBIPIX:
     >>> model.test_performance()
     
     >>> # For resolved galaxy analysis
-    >>> model.type = 'Resolved'
-    >>> posteriors = model.get_posteriors_resolved(phot_data, n_gal=123)
+    >>> posteriors = model.get_posteriors_resolved(phot_data, n_gal=10)
     """
 
     def __init__(self):
@@ -126,7 +127,7 @@ class SBIPIX:
         # Filter and data configuration
         self.n_filters = 19
         self.filter_list = 'filters_jades_no_wfc.dat'
-        self.filter_path = './observational_properties/'
+        self.filter_path = '../obs/obs_properties/'
         self.atlas_name = 'atlas_obs_jades_no_wfc'
         self.atlas_path = './library/'
         
@@ -158,11 +159,12 @@ class SBIPIX:
         # Observational properties (loaded from files)
         self.mean_sigma_obs = None
         self.stds_sigma_obs = None
+        self.percentiles = None
         self.limits = None
         
         # Model configuration
-        self.model_path = "./test_posterior/"
-        self.model_name = "posterior_obs_class.pkl"
+        self.model_path = "./library/"
+        self.model_name = "posteriors.pkl"
         self.infer_z = True
         self.infer_z_integrated = False
         
@@ -364,6 +366,35 @@ class SBIPIX:
         self.theta = theta
 
         return obs, theta
+    
+    def load_obs_features(self):
+        """
+        Loads observational features from pre-saved numpy files.
+
+        Parameters:
+        None
+
+        Returns:
+        None
+        """
+        # Load observational features from the survey
+
+        #mean of the distribution of noise in the galaxies for each filter and different bins of flux
+        self.mean_sigma_obs = np.load(self.filter_path+'mean_sigma_jades_res_bins.npy') 
+        #std of the distribution of noise in the galaxies for each filter and different bins of flux
+        self.stds_sigma_obs = np.load(self.filter_path+'std_sigma_jades_res_bins.npy') 
+        #different bins of flux for each filter
+        self.percentiles = np.load(self.filter_path+'percentiles_jades_res_bins.npy')
+        #1 sigma depth limits for each filter
+        self.limits=np.load(self.filter_path+'background_noise_hainline.npy') 
+        
+        if self.remove_filters is not None:
+                self.mean_sigma_obs = self.mean_sigma_obs[:, [i for i in range(len(self.mean_sigma_obs[0,:])) if i not in self.remove_filters]]
+                self.stds_sigma_obs = self.stds_sigma_obs[:, [i for i in range(len(self.stds_sigma_obs[0,:])) if i not in self.remove_filters]]
+                self.percentiles = self.percentiles[:, [i for i in range(len(self.percentiles[0,:])) if i not in self.remove_filters]]
+                self.limits =   self.limits[[i for i in range(len(self.limits)) if i not in self.remove_filters]]
+
+        print('Observational features loaded')        
 
 
     def add_noise_nan_limit_all(self):
@@ -401,7 +432,7 @@ class SBIPIX:
         """
         # Magnitude-dependent uncertainty bins
         i_not_last_bin = [10,12,13,14,15,16,17,18]
-        percentiles = np.load('./observational_properties/percentiles_jades_res_bins.npy')
+        percentiles = self.percentiles
         flux = mag_conversion(mag, convert_to='flux')
 
         # Determine uncertainty based on magnitude and apply detection limit
@@ -609,6 +640,43 @@ class SBIPIX:
 
         if return_posterior:
             return np.array(posteriors)
+        
+
+    def _get_posterior_obs(self, obs, qphi, n_samples=1000, bar=True, input_z=None,device='cpu'):
+        """
+        Generate posterior samples for observed data.
+
+        Parameters:
+        - obs: numpy array
+            Observed data.
+        - qphi: object
+            Trained model for sampling.
+        - n_samples: int, optional (default=1000)
+            Number of samples to generate.
+        - bar: bool, optional (default=True)
+            Whether to show a progress bar.
+        - input_z: numpy array, optional
+            Input redshift values.
+
+        Returns:
+        - numpy array
+            Posterior samples.
+        """
+        if not self.infer_z and input_z is not None:
+            input_z = np.repeat(input_z, len(obs), axis=0)
+            obs = np.concatenate([obs, np.reshape(input_z, newshape=(len(obs), 1))], axis=1)
+        
+        posteriors = []
+        if bar:
+            for i in trange(len(obs)):
+                p = np.array(qphi.sample((n_samples,), x=torch.as_tensor(np.array([obs[i, :]]).astype(np.float32)).to(device), show_progress_bars=False).detach().to('cpu'))
+                posteriors.append(p)
+        else:
+            for i in range(len(obs)):
+                p = np.array(qphi.sample((n_samples,), x=torch.as_tensor(np.array([obs[i, :]]).astype(np.float32)).to(device), show_progress_bars=True).detach().to('cpu'))
+                posteriors.append(p)
+
+        return np.array(posteriors)        
         
 
     def get_posteriors_resolved(self, phot_arr, n_gal, n_samples=50, save=True, 

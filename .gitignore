@@ -32,6 +32,19 @@ MANIFEST
 *.manifest
 *.spec
 
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+sbipix_env/
+venv/
+env/
+.env
+.venv
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -77,6 +90,11 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+
+# SBI logs and outputs
+sbi-logs/
+*.pkl
+*.log
 
 # IPython
 profile_default/
@@ -178,7 +196,16 @@ cython_debug/
 #  that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
 #  and can be added to the global gitignore or merged into this file. However, if you prefer, 
 #  you could uncomment the following to ignore the enitre vscode folder
-# .vscode/
+ .vscode/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
 # Ruff stuff:
 .ruff_cache/

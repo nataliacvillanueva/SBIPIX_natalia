@@ -114,16 +114,8 @@ def generate_atlas_parametric(priors, N_pregrid=10, initial_seed=42, store=True,
         massval = priors.sample_mass_prior()
 
         # Sample τ-delayed SFH parameters
-        import dense_basis.priors_prospect as priors_prospect
-        ti = priors_prospect.TopHat(
-            mini=0.0, 
-            maxi=cosmology.age(zval).value
-        ).sample()  # Time since SF began (Gyr)
-        
-        tau = priors_prospect.LogUniform(
-            mini=1e-2, 
-            maxi=100
-        ).sample()  # Timescale of decrease (Gyr)
+        ti = np.random.uniform(0.0, cosmology.age(zval).value)[0] # Time when SF began, cosmic (Gyr)
+        tau =  10**(np.random.uniform(np.log10(1e-2), np.log10(100)))  # Timescale of decrease (Gyr)
 
         # Generate SFH
         t = np.linspace(0, cosmology.age(zval).value, 1000)
@@ -185,7 +177,7 @@ def generate_atlas_parametric(priors, N_pregrid=10, initial_seed=42, store=True,
         sfr = np.log10(np.mean(sfh[-100:]))  # Averaged over last 100 Myr
 
         # Store SFH parameters
-        sfh_tuple = np.array([mstar, mformed, sfr, tau[0], ti[0], Nparam])
+        sfh_tuple = np.array([mstar, mformed, sfr, tau, ti, Nparam])
 
         # Append to lists
         zval_all.append(zval)

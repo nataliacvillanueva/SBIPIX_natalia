@@ -10,7 +10,7 @@ __license__ = "MIT"
 __description__ = "Simulation-based inference for pixel-level stellar population properties from galaxy SEDs"
 
 # Import main class
-from .sbipix import SBIPIX
+from .sbipix import sbipix
 
 # Import key utilities
 from .utils.sed_utils import *
