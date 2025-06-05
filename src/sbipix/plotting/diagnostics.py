@@ -368,3 +368,18 @@ def plot_sed_comparison(sbipix_model, galaxy_idx, model_sed=None,
         print(f"Saved plot to {save_name}")
     
     plt.show()
+
+    def ppc_sed_comparison():
+        """
+        Placeholder for posterior predictive checks on SEDs.
+        This function would implement the logic to compare observed SEDs
+        with model predictions, typically using posterior samples.
+        """
+        print("Posterior predictive checks for SEDs not implemented yet.")
+        # This would involve sampling from the posterior and comparing
+        # the resulting SEDs with the observed data.
+        # Implementation would depend on the specific model and data structure.
+        # For now, we just print a message.
+        # In a complete implementation, this would generate plots similar to
+        # plot_sed_comparison but using posterior samples instead of a single model SED.
+        pass
