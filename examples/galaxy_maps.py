@@ -460,24 +460,24 @@ if __name__ == "__main__":
     print("=" * 40)
 
     local_path = os.path.dirname(os.path.abspath(__file__))
-    
+
     # Example 1: Single galaxy
     print("Example: Single galaxy maps")
     galaxy_maps(
         sx=sx,
-        galaxy_id=205449,
-        data=local_path+"/obs/six_galaxies_data.hdf5",
-        size=75,
+        galaxy_id=206146,
+        data=local_path+"/../obs/six_galaxies_data.hdf5",
+        size=25,
         plot='maps',
         cmap='turbo',
         savefig=False,
         plot_fraction=True
     )
     
-    # Example 2: All galaxies
+    """# Example 2: All galaxies
     print("\n" + "="*50)
     print("Processing all galaxies...")
     run_all_galaxies(
         data_file=local_path+"/obs/six_galaxies_data.hdf5",
         plot_type='maps'
-    )
+    )"""

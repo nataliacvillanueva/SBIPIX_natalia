@@ -33,12 +33,15 @@ python -c "from sbipix import sbipix; print('SBIPIX installed successfully!')"
 #### 1. Initialize SBIPIX
 ```python
 from sbipix import sbipix
+from sbipix import *
+from sbipix.plotting.diagnostics  import plot_test_performance
 
 # Create SBIPIX instance
 sx = sbipix()
 
 # Configure for JADES
-sx.filter_list = 'obs_properties/filters_jades_no_wfc.dat'
+sx.filter_path = 'obs/obs_properties/'
+sx.filter_list='filters_jades_no_wfc.dat'
 sx.atlas_name = 'atlas_obs_jades'
 sx.n_simulation = 1000
 sx.parametric = True  # or False for non-parametric SFH
@@ -87,7 +90,8 @@ sx.train(
 ```python
 # Test model performance
 posterior_test = sx.test_performance(n_test=100, return_posterior=True)
-sx.plot_test_performance(n_test=100)
+sx.plot_test_performance(sx,n_test=100)
+
 ```
 
 ### Working with JADES Data
@@ -97,7 +101,7 @@ sx.plot_test_performance(n_test=100)
 from examples.inspect_jades_hdf5 import JADESInspector
 
 # Initialize inspector
-inspector = JADESInspector("six_galaxies_data_with_metadata.hdf5")
+inspector = JADESInspector("obs/six_galaxies_data.hdf5")
 
 # Overview of the dataset
 inspector.print_overview()
@@ -120,7 +124,7 @@ from examples.inference_six_gal import galaxy_inference, run_inference_for_all_g
 posteriors = galaxy_inference(
     sx, 
     galaxy_id=205449,
-    data="six_galaxies_data_with_metadata.hdf5",
+    data="obs/six_galaxies_data.hdf5",
     sn_limit=5.0,
     n_samples=500,
     save_posteriors=True
@@ -128,7 +132,7 @@ posteriors = galaxy_inference(
 
 # Process all sample galaxies
 run_inference_for_all_galaxies(
-    hdf5_file="six_galaxies_data_with_metadata.hdf5",
+    hdf5_file="obs/six_galaxies_data.hdf5",
     sn_limits=[5, 5, 5, 5, 5, 5]
 )
 ```
@@ -149,7 +153,7 @@ galaxy_maps(
 
 # Process all galaxies
 run_all_galaxies(
-    data_file="six_galaxies_data_with_metadata.hdf5",
+    data_file="obs/six_galaxies_data.hdf5",
     plot_type='maps'
 )
 ```
@@ -180,34 +184,6 @@ SBIPIX/
 └── README.md
 ```
 
-### Example Workflows
-
-#### Basic SED Fitting
-```python
-# 1. Configure and simulate
-sx = sbipix()
-sx.configure_jades()
-sx.simulate_galaxies()
-
-# 2. Train model
-sx.train_model()
-
-# 3. Fit real data
-posteriors = sx.fit_galaxy_pixels(photometry, errors)
-```
-
-#### Advanced Analysis
-```python
-# 1. Load pre-trained model
-sx.load_model("pretrained_jades_model.pkl")
-
-# 2. Fit with custom S/N cuts
-posteriors = sx.fit_with_snr_cut(data, sn_limit=3.0)
-
-# 3. Compare parametric vs non-parametric
-sx.compare_models(galaxy_data)
-```
-
 ### Next Steps
 
 - **Tutorial Notebooks**: See `examples/` for Jupyter notebooks with detailed walkthroughs
@@ -219,10 +195,13 @@ sx.compare_models(galaxy_data)
 
 If you use SBIPIX in your research, please cite:
 ```bibtex
-@article{sbipix2025,
-    title={Simulation-based inference of galaxy properties from JWST pixels},
-    author={Author et al.},
-    journal={Journal},
-    year={2025}
+@misc{iglesiasnavarro2025simulationbasedinferencegalaxyproperties,
+      title={Simulation-based inference of galaxy properties from JWST pixels}, 
+      author={Patricia Iglesias-Navarro and Marc Huertas-Company and Pablo Pérez-González and Johan H. Knapen and ChangHoon Hahn and Anton M. Koekemoer and Steven L. Finkelstein and Natalia Villanueva and Andrés Asensio Ramos},
+      year={2025},
+      eprint={2506.04336},
+      archivePrefix={arXiv},
+      primaryClass={astro-ph.GA},
+      url={https://arxiv.org/abs/2506.04336}, 
 }
 ```

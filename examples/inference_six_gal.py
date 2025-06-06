@@ -19,7 +19,7 @@ cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
 """SBIPIX parameters"""
 local_path=os.path.abspath('.')
-sx.model_name = 'post_obs_jades_resolved_tau_z7.5_cpu.pkl' # Adjust this to your model, this is a model trained on cpu up to z=7.5 with tau-delayed SFHs
+sx.model_name = 'post_obs_jades_resolved_tau_z7.5_cpu.pkl' # Adjust this to your model, this is a model trained on cpu up to z=7.5 with tau-delayed SFHs on 100k simulations
 sx.filter_path = local_path+'/obs/obs_properties/'
 sx.model_path = local_path+'/library/'
 sx.n_simulation = 1000000
@@ -213,7 +213,7 @@ def run_inference_for_all_galaxies(hdf5_file="six_galaxies_data.hdf5", sn_limits
                 sx, 
                 galaxy_id, 
                 data=hdf5_file,
-                device='cuda',
+                device='cpu',
                 sn_limit=sn_limits[k],
                 n_theta=7,
                 n_samples=500,  # You can adjust this
@@ -241,18 +241,19 @@ if __name__ == "__main__":
     print("Example: Single galaxy inference")
     p = galaxy_inference(
         sx, 
-        id=205449, 
+        id=206146, 
         data=local_path+"/obs/six_galaxies_data.hdf5",
         device='cpu',
         sn_limit=5.0,
         n_samples=500,
-        save_posteriors=True
+        save_posteriors=True,
+        compute_integrated_properties=False
     )
     
-    # Option 2: Run inference for all galaxies
+    """# Option 2: Run inference for all galaxies
     print("\n" + "="*60)
     print("Running inference for all galaxies...")
     run_inference_for_all_galaxies(
         hdf5_file=local_path+"/obs/six_galaxies_data.hdf5",
         sn_limits=[5, 5, 5, 5, 5, 5]
-    )
+    )"""
