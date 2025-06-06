@@ -162,26 +162,38 @@ run_all_galaxies(
 
 ```
 SBIPIX/
-├── src/sbipix/           # Main package
+├── LICENSE
+├── README.md
+├── requirements.txt
+├── setup.py
+├── src/sbipix/               # Main package
 │   ├── __init__.py       
-│   ├── sbipix.py         # Core SBIPIX class
-│   ├── plotting/         # Plotting utilities
+│   ├── sbipix.py             # Core SBIPIX class
+│   ├── plotting/             # Plotting utilities
+│   │   ├── __init__.py
 │   │   └── diagnostics.py
-│   ├── train/            # Training modules
+│   ├── train/                # Training modules
+│   │   ├── __init__.py
 │   │   └── simulator.py
-│   └── utils/            # Utility functions
+│   └── utils/                # Utility functions
+│       ├── __init__.py
 │       ├── cosmology.py
 │       └── sed_utils.py
-├── examples/             # Example scripts and tutorials
-│   ├── inspect_jades_hdf5.py      # Data inspection tool
-│   ├── inference_six_gal.py       # Inference pipeline
-│   ├── galaxy_maps_sbipix.py      # Visualization tool
-│ 
-├── obs_properties/       # Observational data
-│   ├── filters_jades_no_wfc.dat
-│   └── background_noise_hainline.npy
-├── setup.py
-└── README.md
+├── examples/                 # Example scripts and workflows
+│   ├── galaxy_maps.py        # Visualization tool
+│   ├── inference_six_gal.py  # Inference pipeline
+│   └── simulation_training_testing.py  # Training example
+├── obs/                      # Observational data and tools
+│   ├── inspect_jades_hdf5.py # Data inspection tool
+│   ├── six_galaxies_data.hdf5 # Sample JADES data
+│   └── obs_properties/       # Filter curves and noise models
+│       ├── FILTERS_HST/      # HST filter transmission curves
+│       ├── FILTERS_JWST/     # JWST filter transmission curves
+│       ├── filters_jades_no_wfc.dat
+│       └── *.npy             # Noise and calibration files
+└── library/                  # Pre-computed stellar libraries
+    ├── atlas_obs_jades_1000_Nparam_2.dbatlas
+    └── atlas_obs_jades_1000_Nparam_3.dbatlas
 ```
 
 ### Next Steps
