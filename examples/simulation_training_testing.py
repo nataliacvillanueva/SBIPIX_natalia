@@ -46,7 +46,7 @@ sx.load_simulation()
 # plot the simulated distributions of parameters
 plot_theta(sx,limit_sfr=True,range_sfr=(-15,4))
 
-
+"""
 # Add realism to the simulation
 sx.include_limit = True      # Include upper limits in training data
 sx.condition_sigma = True    # Condition on photometric uncertainties in the training
@@ -90,4 +90,4 @@ posterior_test = sx.test_performance(
 )
 
 # Generate performance plots
-plot_test_performance(sx,n_test = 100)  # Create diagnostic plots
+plot_test_performance(sx,n_test = 100)  # Create diagnostic plots"""

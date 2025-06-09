@@ -29,7 +29,6 @@ sx.infer_z = False
 sx.include_limit = True
 sx.condition_sigma = True
 sx.include_sigma = True
-sx.load_obs_features()
 
 def galaxy_inference(sx, id, data="six_galaxies_data.hdf5", device='cpu', sn_limit=None, 
                     n_theta=7, n_samples=None, compute_integrated_properties=False, 
@@ -236,7 +235,9 @@ def run_inference_for_all_galaxies(hdf5_file="six_galaxies_data.hdf5", sn_limits
 
 # Example usage
 if __name__ == "__main__":
-    
+    # Load the obs features
+    sx.load_obs_features()
+
     # Option 1: Run inference for a single galaxy
     print("Example: Single galaxy inference")
     p = galaxy_inference(

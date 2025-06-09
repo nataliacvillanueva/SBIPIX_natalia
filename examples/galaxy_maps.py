@@ -65,7 +65,7 @@ def galaxy_maps(sx, galaxy_id, data="six_galaxies_data.hdf5",
     size : int
         Size of the plot region (pixels from center)
     plot : str
-        Type of plot ('phot', 'err', 'sn', 'maps')
+        Type of plot ('phot', 'err', 'sn', 'maps', 'error_maps')
     cmap : str
         Colormap for the plots
     savefig : bool
@@ -187,6 +187,11 @@ def galaxy_maps(sx, galaxy_id, data="six_galaxies_data.hdf5",
                               phot_gal, grid_shape, ranges, metric, cmap, 
                               savefig, galaxy_id, output_dir, plot_fraction, 
                               psf_fwhm, size, sx, filters, f444w_idx)
+        elif plot == 'error_maps' and posteriors is not None:
+            plot_error_maps(posteriors, max_sn, coordinates, labels, 
+                        grid_shape, ranges, cmap, savefig, galaxy_id, 
+                        output_dir, sx, filters, f444w_idx)
+    
 
 def plot_photometry(phot_gal, filters, ranges, cmap, all_filters, savefig, 
                    galaxy_id, output_dir):
@@ -213,7 +218,7 @@ def plot_photometry(phot_gal, filters, ranges, cmap, all_filters, savefig,
         
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.set_title(f'Galaxy {galaxy_id} - {filter_name}', fontsize=16)
+        #ax.set_title(f'Galaxy {galaxy_id} - {filter_name}', fontsize=16)
         
         if savefig:
             plt.savefig(f'{output_dir}/{galaxy_id}/ID_{galaxy_id}_{filter_name}_phot.pdf', 
@@ -245,7 +250,7 @@ def plot_errors(err_gal, filters, ranges, cmap, all_filters, savefig,
         
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.set_title(f'Galaxy {galaxy_id} - {filter_name} Error', fontsize=16)
+        #ax.set_title(f'Galaxy {galaxy_id} - {filter_name} Error', fontsize=16)
         
         if savefig:
             plt.savefig(f'{output_dir}/{galaxy_id}/ID_{galaxy_id}_{filter_name}_err.pdf', 
@@ -280,7 +285,7 @@ def plot_signal_to_noise(phot_gal, err_gal, filters, ranges, cmap, all_filters,
         
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.set_title(f'Galaxy {galaxy_id} - {filter_name} S/N', fontsize=16)
+        #ax.set_title(f'Galaxy {galaxy_id} - {filter_name} S/N', fontsize=16)
         
         if savefig:
             plt.savefig(f'{output_dir}/{galaxy_id}/ID_{galaxy_id}_{filter_name}_sn.pdf', 
@@ -354,7 +359,7 @@ def plot_parameter_maps(posteriors, max_sn, coordinates, labels, phot_gal,
     
     ax.set_xticks([])
     ax.set_yticks([])
-    ax.set_title(f'Galaxy {galaxy_id} - {filter_name}', fontsize=16)
+    #ax.set_title(f'Galaxy {galaxy_id} - {filter_name}', fontsize=16)
     
     if savefig:
         plt.savefig(f'{output_dir}/{galaxy_id}/ID_{galaxy_id}_{filter_name}_reference.pdf', 
@@ -393,10 +398,68 @@ def plot_parameter_maps(posteriors, max_sn, coordinates, labels, phot_gal,
         
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.set_title(f'Galaxy {galaxy_id} - {labels[i]}', fontsize=16)
+        #ax.set_title(f'Galaxy {galaxy_id} - {labels[i]}', fontsize=16)
         
         if savefig:
             plt.savefig(f'{output_dir}/{galaxy_id}/ID_{galaxy_id}_param_{i}_{labels[i].replace("/", "_")}.pdf', 
+                       bbox_inches='tight')
+        plt.show()
+
+def plot_error_maps(posteriors, max_sn, coordinates, labels, grid_shape, 
+                   ranges, cmap, savefig, galaxy_id, output_dir, sx, 
+                   filters, f444w_idx):
+    """Plot error maps (standard deviation) from posteriors"""
+    
+    n_theta = len(labels)
+    theta_std_gal = np.full((n_theta, grid_shape[0], grid_shape[1]), np.nan)
+    
+    # Fill error maps with standard deviations
+    for k in range(len(posteriors)):
+        if k < len(max_sn):
+            pixel_idx = max_sn[k]
+            if pixel_idx < len(coordinates):
+                x, y = coordinates[pixel_idx]
+                
+                p = posteriors[k, :, :]
+                t_std = np.std(p, axis=0)  # Standard deviation for each parameter
+                
+                theta_std_gal[:, x, y] = t_std
+    
+    # Calculate fraction of fitted pixels
+    total_pixels = len(coordinates)
+    fitted_pixels = len(max_sn)
+    ratio = fitted_pixels / total_pixels if total_pixels > 0 else 0
+    print(f'Error maps - Fitted pixels: {fitted_pixels}/{total_pixels} ({ratio:.2%})')
+    
+    # Plot error maps for each parameter
+    for i in range(n_theta):
+        fig, ax = plt.subplots(figsize=(6, 8))
+        
+        error_slice = theta_std_gal[i, ranges[0]:ranges[1], ranges[2]:ranges[3]]
+        
+        if np.any(np.isfinite(error_slice)):
+            # Use linear scale for error maps (not log)
+            im = ax.imshow(error_slice, origin='lower', cmap=cmap)
+            
+            # Add statistics to the plot
+            valid_errors = error_slice[np.isfinite(error_slice)]
+            if len(valid_errors) > 0:
+                median_error = np.median(valid_errors)
+                ax.text(0.05, 0.95, f'Med. σ = {median_error:.3f}', 
+                       fontsize=16, transform=ax.transAxes, color='white',
+                       bbox=dict(boxstyle='round', facecolor='black', alpha=0.7))
+            
+            cbar = plt.colorbar(mappable=im, label=f'σ({labels[i]})', location='top', ax=ax)
+            cbar.ax.tick_params(labelsize=16)
+        else:
+            ax.text(0.5, 0.5, 'No valid data', ha='center', va='center', 
+                   transform=ax.transAxes, fontsize=16)
+        
+        ax.set_xticks([])
+        ax.set_yticks([])
+        
+        if savefig:
+            plt.savefig(f'{output_dir}/{galaxy_id}/ID_{galaxy_id}_error_{i}_{labels[i].replace("/", "_")}.pdf', 
                        bbox_inches='tight')
         plt.show()
 
@@ -471,7 +534,8 @@ if __name__ == "__main__":
         plot='maps',
         cmap='turbo',
         savefig=False,
-        plot_fraction=True
+        plot_fraction=True,
+        all_filters=True
     )
     
     """# Example 2: All galaxies

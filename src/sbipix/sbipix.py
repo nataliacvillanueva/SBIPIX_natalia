@@ -190,7 +190,7 @@ class sbipix():
         # Analysis type
         self.type = 'Resolved'  # 'Integrated' or 'Resolved'
 
-    def simulate(self, mass_max=12, mass_min=6, sfr_prior_type='SFRflat', 
+    def simulate(self, mass_max=12, mass_min=4, sfr_prior_type='SFRflat', 
                  sfr_min=-9, sfr_max=2, ssfr_min=-12.0, ssfr_max=-7.5, 
                  z_prior='flat', z_min=0.0, z_max=10.0, Z_min=-2.27, Z_max=0.4, 
                  dust_model='Calzetti', dust_prior='flat', Av_min=0.0, Av_max=3.0, 
@@ -203,7 +203,7 @@ class sbipix():
         mass_max : float, optional
             Maximum log stellar mass (default: 12)
         mass_min : float, optional
-            Minimum log stellar mass (default: 6)
+            Minimum log stellar mass (default: 4)
         sfr_prior_type : str, optional
             Type of SFR prior: 'SFRflat', 'sSFRflat', 'sSFRlognormal' (default: 'SFRflat')
         sfr_min : float, optional

@@ -110,6 +110,7 @@ def generate_atlas_parametric(priors, N_pregrid=10, initial_seed=42, store=True,
 
     for i in tqdm(range(int(N_pregrid)), desc="Generating parametric SEDs"):
         # Sample parameters from priors
+        
         zval = priors.sample_z_prior()
         massval = priors.sample_mass_prior()
 
