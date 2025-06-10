@@ -1,4 +1,5 @@
-**SBIPIX: Simulation-based inference of galaxy properties from JWST pixels**
+## SBIPIX: Simulation-based inference of galaxy properties from JWST pixels
+
 [![arXiv](https://img.shields.io/badge/arXiv-2203.07391-B31B1B.svg)](https://arxiv.org/abs/2506.04336)
 
 ---
