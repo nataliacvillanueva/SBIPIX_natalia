@@ -1,5 +1,6 @@
-**# SBIPIX**
-Simulation-based inference of galaxy properties from JWST pixels
+**SBIPIX: Simulation-based inference of galaxy properties from JWST pixels**
+[![arXiv](https://img.shields.io/badge/arXiv-2203.07391-B31B1B.svg)](https://arxiv.org/abs/2506.04336)
+
 ---
 The spectral energy distributions (SEDs) of galaxies offer detailed insights into their stellar populations, capturing key physical properties such as stellar mass, star formation history (SFH), metallicity, and dust attenuation. However, inferring these properties from SEDs is a highly degenerate inverse problem, particularly when using integrated observations and a limited number of photometric bands. We present an efficient Bayesian SED-fitting framework tailored to multiwavelength pixel photometry from the JWST Advanced Deep Extragalactic Survey (JADES). Our method employs simulation-based inference to enable rapid posterior sampling across galaxy pixels, leveraging the unprecedented spatial resolution, wavelength coverage, and depth provided by the survey. It is trained on synthetic photometry generated from MILES stellar population models, incorporating both parametric and non-parametric SFHs, realistic noise, and JADES-like filter sensitivity thresholds.
 

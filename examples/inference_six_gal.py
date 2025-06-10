@@ -172,7 +172,8 @@ def galaxy_inference(sx, id, data="six_galaxies_data.hdf5", device='cpu', sn_lim
                 
                 posterior_dataset = posteriors.create_dataset("posterior_integrated", data=p)
                 posterior_dataset.attrs["method"] = "integrated"
-                posterior_dataset.attrs["n_pixels_used"] = len(max_sn)
+                posterior_dataset.attrs["pixels_fitted"] = max_sn
+                posterior_dataset.attrs["min_SNR"] = sn_limit
                 
                 print("Saved integrated posteriors")
 

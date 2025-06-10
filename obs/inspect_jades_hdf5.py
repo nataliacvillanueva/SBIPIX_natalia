@@ -262,7 +262,7 @@ class JADESInspector:
             
             return max_snr_idx, max_snr_value
     
-    def plot_sed(self, galaxy_id, pixel_idx=None, show_errors=True, show_upper_limits=None, figsize=(12, 6)):
+    def plot_sed(self, galaxy_id, pixel_idx=None, show_errors=True, show_upper_limits=None,upper_limits=None, figsize=(12, 6)):
         """
         Plot spectral energy distribution for a galaxy
         
@@ -276,6 +276,8 @@ class JADESInspector:
             Whether to show error bars
         show_upper_limits : bool or None
             Whether to show upper limits, None to ask user
+        upper_limits : np.ndarray or None
+            Array of upper limits for each filter, None to load from default file
         figsize : tuple
             Figure size
         """
@@ -291,18 +293,19 @@ class JADESInspector:
             show_upper_limits = response in ['y', 'yes', '1', 'true']
         
         # Load background noise limits if requested
-        upper_limits = None
         if show_upper_limits:
             try:
-                # Try to find the background noise file
-                noise_file = os.path.dirname(os.path.abspath(__file__))+'/obs_properties/background_noise_hainline.npy'
-                upper_limits = np.load(noise_file, allow_pickle=True)
-                print(f"✅ Loaded upper limits from: {noise_file}")
+                if upper_limits is None:
+                    # Try to find the background noise file
+                    noise_file = os.path.dirname(os.path.abspath(__file__))+'/obs_properties/background_noise_hainline.npy'
+                    upper_limits = np.load(noise_file, allow_pickle=True)
+                    print(f"✅ Loaded upper limits from: {noise_file}")
                 if len(upper_limits) != len(self.filters):
                     print(f"⚠️  Warning: Upper limits array length ({len(upper_limits)}) doesn't match filters ({len(self.filters)})")
             except Exception as e:
                 print(f"❌ Error loading upper limits: {e}")
-                show_upper_limits = False
+                upper_limits = input("Path to upper limits?").strip().lower()
+                upper_limits = np.load(upper_limits, allow_pickle=True)
         
         with h5py.File(self.filename, "r") as hdf:
             galaxy = hdf[f"galaxies/{galaxy_id}"]

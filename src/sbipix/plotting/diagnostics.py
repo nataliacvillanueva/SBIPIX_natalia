@@ -9,9 +9,33 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import sklearn.metrics as sm
+import fsps
 import dense_basis as db
+from dense_basis import make_filvalkit_simple, calc_fnu_sed_fast
 from sbipix.utils.sed_utils import mag_conversion
+from astropy.cosmology import FlatLambdaCDM
+import matplotlib as mpl
+from tqdm import tqdm, trange
+import os
+import h5py
+import glob
+from matplotlib.lines import Line2D
 
+# Set matplotlib parameters
+mpl.rcParams['font.family'] = 'serif'
+mpl.rcParams['axes.linewidth'] = 1.5
+mpl.rcParams['xtick.labelsize'] = 'large'
+mpl.rcParams['xtick.major.size'] = 8
+mpl.rcParams['xtick.major.width'] = 1.5
+mpl.rcParams['ytick.labelsize'] = 'large'
+mpl.rcParams['ytick.major.size'] = 8
+mpl.rcParams['ytick.major.width'] = 1.5
+mpl.rcParams['legend.frameon'] = True
+mpl.rcParams['font.size'] = 10
+mpl.rcParams["figure.figsize"] = (6, 5)
+mpl.rcParams["mathtext.fontset"] = 'dejavuserif'
+mpl.rcParams['xtick.direction'] = 'in'
+mpl.rcParams['ytick.direction'] = 'in'
 
 def plot_filters(sbipix_model):
     """
@@ -340,7 +364,7 @@ def plot_sed_comparison(sbipix_model, galaxy_idx, model_sed=None,
     if sbipix_model.obs is None:
         raise ValueError("No simulation data found. Run load_simulation() first.")
     
-    lam_eff = np.load('./observational_properties/lam_eff.npy')[:]
+    lam_eff = np.load('obs/obs_properties/lam_eff.npy')[:]
     obs_flux = mag_conversion(sbipix_model.obs[galaxy_idx], convert_to='flux')
     
     plt.figure(figsize=figsize)
@@ -368,42 +392,9 @@ def plot_sed_comparison(sbipix_model, galaxy_idx, model_sed=None,
     
     plt.show()
 
-#!/usr/bin/env python3
 """
 Posterior Predictive Check for SBIPIX
-
-Add this to your src/sbipix/plotting/diagnostics.py file
 """
-
-import numpy as np
-from matplotlib import pyplot as plt
-from astropy.io import fits
-from astropy.cosmology import FlatLambdaCDM
-import matplotlib as mpl
-from tqdm import tqdm, trange
-import os
-import h5py
-import glob
-from matplotlib.lines import Line2D
-from matplotlib.patches import Patch
-from matplotlib.legend_handler import HandlerTuple
-import matplotlib.ticker as ticker
-
-# Set matplotlib parameters
-mpl.rcParams['font.family'] = 'serif'
-mpl.rcParams['axes.linewidth'] = 1.5
-mpl.rcParams['xtick.labelsize'] = 'large'
-mpl.rcParams['xtick.major.size'] = 8
-mpl.rcParams['xtick.major.width'] = 1.5
-mpl.rcParams['ytick.labelsize'] = 'large'
-mpl.rcParams['ytick.major.size'] = 8
-mpl.rcParams['ytick.major.width'] = 1.5
-mpl.rcParams['legend.frameon'] = True
-mpl.rcParams['font.size'] = 10
-mpl.rcParams["figure.figsize"] = (6, 5)
-mpl.rcParams["mathtext.fontset"] = 'dejavuserif'
-mpl.rcParams['xtick.direction'] = 'in'
-mpl.rcParams['ytick.direction'] = 'in'
 
 def flux2mag(x):
     """Convert flux in microjansky to AB magnitude"""
@@ -505,9 +496,11 @@ def make_spec_plot_sbipix(lam, spec, lam_min=4000, lam_max=55000,
     else:
         return ax
 
-def plot_posterior_templates_sbipix(sx, galaxy_id, phot, err, z, posteriors, 
+def plot_posterior_templates_sbipix(sx, galaxy_id, phot, err, z, posteriors, sp=None,
                                    n_samples=500, pixel_type='high_sn',
-                                   ax=None, add_mags=False, show_background=True):
+                                   ax=None, add_mags=False, show_background=True,
+                                   limits_file='obs/obs_properties/background_noise_hainline.npy',
+                                   path_obs_properties='obs/obs_properties/'):
     """
     Plot posterior predictive templates for SBIPIX
     
@@ -525,6 +518,8 @@ def plot_posterior_templates_sbipix(sx, galaxy_id, phot, err, z, posteriors,
         Redshift
     posteriors : array
         Posterior samples array
+    sp : fsps.StellarPopulation, optional
+        FSPS stellar population instance (default: None, will initialize if None)
     n_samples : int
         Number of samples to plot
     pixel_type : str
@@ -535,6 +530,10 @@ def plot_posterior_templates_sbipix(sx, galaxy_id, phot, err, z, posteriors,
         Whether to add magnitude axis
     show_background : bool
         Whether to show background limits
+    limits_file : str
+        Path to background limits file
+    path_obs_properties : str
+        Path to observational properties directory
         
     Returns:
     --------
@@ -543,26 +542,26 @@ def plot_posterior_templates_sbipix(sx, galaxy_id, phot, err, z, posteriors,
     best_theta : array
         Best-fit parameters
     """
-    
-    import fsps
-    from dense_basis import make_filvalkit_simple, calc_fnu_sed_fast
-    
-    # Initialize FSPS
-    sp = fsps.StellarPopulation(
-        compute_vega_mags=False,
-        zcontinuous=1,
-        sfh=0,  # Simple stellar populations
-        dust_type=2,  # Calzetti dust attenuation
-        imf_type=1,  # Chabrier IMF
-        add_neb_continuum=True,
-        add_neb_emission=True
-    )
-    
+
+    # If not initialized, create a new StellarPopulation instance
+    if sp is None:
+        import fsps
+        sp = fsps.StellarPopulation(
+            compute_vega_mags=False,
+            zcontinuous=1,
+            sfh=0,  # Simple stellar populations
+            dust_type=2,  # Calzetti dust attenuation
+            imf_type=1,  # Chabrier IMF
+            add_neb_continuum=True,
+            add_neb_emission=True
+        )
+        
     # Load cosmology
+    from astropy.cosmology import FlatLambdaCDM
     cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
     
     # Load effective wavelengths
-    lam_eff_file = os.path.join(os.path.dirname(__file__), '../../obs/obs_properties/lam_eff.npy')
+    lam_eff_file = path_obs_properties + 'lam_eff.npy'
     if os.path.exists(lam_eff_file):
         lam_eff = np.load(lam_eff_file)[:19] / 1e4
     else:
@@ -573,8 +572,7 @@ def plot_posterior_templates_sbipix(sx, galaxy_id, phot, err, z, posteriors,
     # Load background limits if available
     if hasattr(sx, 'limits') or show_background:
         try:
-            bg_file = 'obs/obs_properties/background_noise_hainline.npy'
-            limits = np.load(bg_file)
+            limits = np.load(limits_file)
         except:
             limits = None
     else:
@@ -625,7 +623,7 @@ def plot_posterior_templates_sbipix(sx, galaxy_id, phot, err, z, posteriors,
             # Calculate photometry
             filcurves, _, _ = make_filvalkit_simple(lam, z, 
                                                   fkit_name='filters_jades_no_wfc.dat',
-                                                  filt_dir='obs/obs_properties/')
+                                                  filt_dir=path_obs_properties)
             sed_csp_ujy = calc_fnu_sed_fast(spec_csp_ujy, filcurves)
             
             # Plot spectrum
@@ -701,7 +699,7 @@ def plot_posterior_templates_sbipix(sx, galaxy_id, phot, err, z, posteriors,
         # Calculate and plot best photometry
         filcurves, _, _ = make_filvalkit_simple(lam, z, 
                                               fkit_name='filters_jades_no_wfc.dat',
-                                              filt_dir='obs/obs_properties/')
+                                              filt_dir=path_obs_properties)
         sed_best = calc_fnu_sed_fast(spec_best, filcurves)
         ax.plot(lam_eff, sed_best, 'o', markersize=10, alpha=0.8,
                markerfacecolor="None", markeredgecolor='tab:orange')
@@ -740,23 +738,31 @@ def plot_posterior_templates_sbipix(sx, galaxy_id, phot, err, z, posteriors,
     else:
         return ax, best_theta
 
-def posterior_predictive_check_sbipix(data_file, galaxy_ids=None, 
+
+def posterior_predictive_check_sbipix(sx, data_file, galaxy_ids=None, 
                                      pixel_selections=['max_snr', 'random'],
+                                     sp=None,
                                      n_samples=500, save_fig=True, 
                                      output_dir='./posterior_checks/',
                                      filters_sn=[6, 8, 11],
-                                     posterior_group='posterior_tau'):
+                                     posterior_group='posterior_tau',
+                                     limits_file='obs/obs_properties/background_noise_hainline.npy',
+                                     path_obs_properties='obs/obs_properties/'):
     """
     Run posterior predictive checks for SBIPIX galaxies with flexible pixel selection
     
     Parameters:
     -----------
+    sx : sbipix
+        SBIPIX instance 
     data_file : str
         Path to HDF5 file with posteriors
     galaxy_ids : list or None
         List of galaxy IDs to process
     pixel_selections : list
         List of selection methods: 'max_snr', 'random', or integer pixel indices
+    sp : fsps.StellarPopulation, optional
+        FSPS stellar population instance (default: None, will initialize if None)
     n_samples : int
         Number of posterior samples to use
     save_fig : bool
@@ -767,34 +773,24 @@ def posterior_predictive_check_sbipix(data_file, galaxy_ids=None,
         Filter indices for S/N calculation [F277W, F356W, F444W by default]
     posterior_group : str
         Name of posterior group to use
-        
-    Examples:
-    ---------
-    # Max S/N and random pixels
-    posterior_predictive_check_sbipix(
-        data_file="obs/six_galaxies_data.hdf5",
-        pixel_selections=['max_snr', 'random']
-    )
-    
-    # Specific pixel indices
-    posterior_predictive_check_sbipix(
-        data_file="obs/six_galaxies_data.hdf5",
-        pixel_selections=[10, 25]
-    )
-    
-    # Mixed selection
-    posterior_predictive_check_sbipix(
-        data_file="obs/six_galaxies_data.hdf5",
-        pixel_selections=['max_snr', 4, 'random', 15]
-    )
+    limits_file : str
+        Path to background limits file
+    path_obs_properties : str
+        Path to observational properties directory
     """
     
-    from sbipix import sbipix
-    
-    # Initialize SBIPIX
-    sx = sbipix()
-    sx.parametric = True
-    sx.both_masses = True
+    # Initialize StellarPopulation if not provided
+    if sp is None:
+        import fsps
+        sp = fsps.StellarPopulation(
+            compute_vega_mags=False,
+            zcontinuous=1,
+            sfh=0,  # Simple stellar populations
+            dust_type=2,  # Calzetti dust attenuation
+            imf_type=1,  # Chabrier IMF
+            add_neb_continuum=True,
+            add_neb_emission=True
+        )
     
     # Create output directory
     if save_fig:
@@ -849,16 +845,18 @@ def posterior_predictive_check_sbipix(data_file, galaxy_ids=None,
                     fitted_pixels = posteriors_data['pixels_fitted'][:]
                     posteriors = posteriors_data['posteriors'][:]
                     
-                    # Select pixel based on method
+                    # Select pixel based on method - ONLY from fitted pixels
                     if pixel_selection == 'max_snr':
-                        # Calculate S/N for all pixels
+                        # Calculate S/N only for fitted pixels
                         snr_values = []
-                        for k in range(len(all_photometry)):
+                        
+                        for k in range(len(fitted_pixels)):
+                            fitted_pixel_idx = fitted_pixels[k]
                             pixel_snr = []
                             for filt_idx in filters_sn:
                                 if filt_idx < all_photometry.shape[1]:
-                                    flux = all_photometry[k, filt_idx]
-                                    error = all_errors[k, filt_idx]
+                                    flux = all_photometry[fitted_pixel_idx, filt_idx]
+                                    error = all_errors[fitted_pixel_idx, filt_idx]
                                     if np.isfinite(flux) and np.isfinite(error) and error > 0:
                                         pixel_snr.append(flux / error)
                             
@@ -867,72 +865,83 @@ def posterior_predictive_check_sbipix(data_file, galaxy_ids=None,
                             else:
                                 snr_values.append(np.nan)
                         
-                        snr_values = np.array(snr_values)
-                        selected_pixel = np.nanargmax(snr_values)
-                        snr_val = snr_values[selected_pixel]
-                        selection_label = "Max S/N"
+                        if len(snr_values) > 0:
+                            snr_values = np.array(snr_values)
+                            max_snr_idx = np.nanargmax(snr_values)  # Index in fitted_pixels array
+                            selected_pixel_idx = fitted_pixels[max_snr_idx]  # Actual pixel index
+                            snr_val = snr_values[max_snr_idx]
+                            selection_label = "Max S/N"
+                            
+                            # Get photometry and error for the selected fitted pixel
+                            phot = all_photometry[selected_pixel_idx]
+                            err = all_errors[selected_pixel_idx]
+                            
+                            # Get corresponding posteriors
+                            pixel_posteriors = posteriors[max_snr_idx]
+                            fitted_idx = max_snr_idx
+                            
+                        else:
+                            raise ValueError("No valid S/N values found among fitted pixels")
                         
                     elif pixel_selection == 'random':
-                        # Select random pixel from fitted pixels
+                        # Select random index from fitted pixels
                         if len(fitted_pixels) > 0:
-                            random_idx = np.random.randint(0, len(fitted_pixels))
-                            selected_pixel = fitted_pixels[random_idx]
+                            random_fitted_idx = np.random.randint(0, len(fitted_pixels))
+                            selected_pixel_idx = fitted_pixels[random_fitted_idx]
+                            
+                            # Get photometry and error for the selected fitted pixel
+                            phot = all_photometry[selected_pixel_idx]
+                            err = all_errors[selected_pixel_idx]
+                            
+                            # Get corresponding posteriors
+                            pixel_posteriors = posteriors[random_fitted_idx]
+                            fitted_idx = random_fitted_idx
+                            
+                            # Calculate S/N for selected pixel
+                            pixel_snr = []
+                            for filt_idx in filters_sn:
+                                if filt_idx < all_photometry.shape[1]:
+                                    flux = phot[filt_idx]
+                                    error = err[filt_idx]
+                                    if np.isfinite(flux) and np.isfinite(error) and error > 0:
+                                        pixel_snr.append(flux / error)
+                            
+                            snr_val = np.mean(pixel_snr) if len(pixel_snr) > 0 else np.nan
+                            selection_label = "Random"
                         else:
-                            selected_pixel = np.random.randint(0, len(all_photometry))
-                        
-                        # Calculate S/N for selected pixel
-                        pixel_snr = []
-                        for filt_idx in filters_sn:
-                            if filt_idx < all_photometry.shape[1]:
-                                flux = all_photometry[selected_pixel, filt_idx]
-                                error = all_errors[selected_pixel, filt_idx]
-                                if np.isfinite(flux) and np.isfinite(error) and error > 0:
-                                    pixel_snr.append(flux / error)
-                        
-                        snr_val = np.mean(pixel_snr) if len(pixel_snr) > 0 else np.nan
-                        selection_label = "Random"
-                        
+                            raise ValueError("No fitted pixels available")
+                            
                     elif isinstance(pixel_selection, (int, np.integer)):
-                        # Direct pixel index
-                        if pixel_selection >= len(all_photometry):
-                            raise ValueError(f"Pixel index {pixel_selection} out of range (max: {len(all_photometry)-1})")
+                        # Direct index into fitted pixels array
+                        if pixel_selection >= len(fitted_pixels):
+                            raise ValueError(f"Fitted pixel index {pixel_selection} out of range (max: {len(fitted_pixels)-1})")
                         
-                        selected_pixel = int(pixel_selection)
+                        selected_pixel_idx = fitted_pixels[pixel_selection]
+                        
+                        # Get photometry and error for the selected fitted pixel
+                        phot = all_photometry[selected_pixel_idx]
+                        err = all_errors[selected_pixel_idx]
+                        
+                        # Get corresponding posteriors
+                        pixel_posteriors = posteriors[pixel_selection]
+                        fitted_idx = pixel_selection
                         
                         # Calculate S/N for selected pixel
                         pixel_snr = []
                         for filt_idx in filters_sn:
                             if filt_idx < all_photometry.shape[1]:
-                                flux = all_photometry[selected_pixel, filt_idx]
-                                error = all_errors[selected_pixel, filt_idx]
+                                flux = phot[filt_idx]
+                                error = err[filt_idx]
                                 if np.isfinite(flux) and np.isfinite(error) and error > 0:
                                     pixel_snr.append(flux / error)
                         
                         snr_val = np.mean(pixel_snr) if len(pixel_snr) > 0 else np.nan
-                        selection_label = f"Pixel {pixel_selection}"
+                        selection_label = f"Fitted Pixel {pixel_selection}"
                     
                     else:
                         raise ValueError(f"Unknown pixel_selection: {pixel_selection}. Use 'max_snr', 'random', or integer pixel index.")
                     
-                    print(f"Selected pixel {selected_pixel} with S/N = {snr_val:.2f}")
-                    
-                    # Get photometry and error for selected pixel
-                    phot = all_photometry[selected_pixel]
-                    err = all_errors[selected_pixel]
-                    
-                    # Find posteriors for this pixel
-                    pixel_posteriors = None
-                    if selected_pixel in fitted_pixels:
-                        posterior_idx = np.where(fitted_pixels == selected_pixel)[0]
-                        if len(posterior_idx) > 0:
-                            pixel_posteriors = posteriors[posterior_idx[0]]
-                    
-                    if pixel_posteriors is None:
-                        print(f"Warning: No posteriors found for pixel {selected_pixel}, using first available")
-                        pixel_posteriors = posteriors[0] if len(posteriors) > 0 else None
-                    
-                    if pixel_posteriors is None:
-                        raise ValueError("No posteriors available")
+                    print(f"Selected fitted pixel {selected_pixel_idx} (fitted index {fitted_idx}) with S/N = {snr_val:.2f}")
                     
                 except Exception as e:
                     print(f"Error getting pixel data for {galaxy_id}: {e}")
@@ -943,13 +952,17 @@ def posterior_predictive_check_sbipix(data_file, galaxy_ids=None,
                 # Plot posterior predictive check
                 try:
                     ax, ax2, best_theta = plot_posterior_templates_sbipix(
-                        sx, galaxy_id, phot, err, z, pixel_posteriors,
+                        sx, galaxy_id, phot, err, z, pixel_posteriors, sp=sp,
                         n_samples=n_samples, 
-                        pixel_type=f'{selection_label.lower().replace(" ", "_")}_pixel_{selected_pixel}',
-                        ax=ax, add_mags=True
+                        pixel_type=f'{selection_label.lower().replace(" ", "_")}_pixel_{selected_pixel_idx}',
+                        ax=ax, add_mags=True,
+                        limits_file=limits_file,
+                        path_obs_properties=path_obs_properties
                     )
                     ax2.set_yticks([27, 28, 29, 30, 31, 32, 33, 34, 35, 36])
                     ax2.minorticks_off()
+                    ax2.set_xlim(4e3/1e4, 5.5e4/1e4)  
+                    ax.set_xlim(4e3/1e4, 5.5e4/1e4)  
                 
                 except Exception as e:
                     print(f"Error plotting {galaxy_id}/{pixel_selection}: {e}")
@@ -965,7 +978,7 @@ def posterior_predictive_check_sbipix(data_file, galaxy_ids=None,
                     ax.set_title(f"{selection_label}\n", fontsize=16)
                 
                 # Add pixel info as text
-                info_text = f"Pixel {selected_pixel}\nS/N = {snr_val:.2f}"
+                info_text = f"Galaxy Pixel {selected_pixel_idx}\nFitted Index {fitted_idx}\nS/N = {snr_val:.2f}"
                 ax.text(0.02, 0.98, info_text, transform=ax.transAxes, 
                        fontsize=10, verticalalignment='top',
                        bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
@@ -974,6 +987,7 @@ def posterior_predictive_check_sbipix(data_file, galaxy_ids=None,
                     ax.set_xlabel("Observed wavelength [μm]")
         
         # Add legend
+        from matplotlib.lines import Line2D
         legend_elements = [
             Line2D([0], [0], color='tab:blue', lw=1.5, label='Posterior samples', alpha=0.3),
             Line2D([0], [0], color='tab:orange', lw=1.5, label='Best fit'),
@@ -999,16 +1013,21 @@ def posterior_predictive_check_sbipix(data_file, galaxy_ids=None,
 # Example usage
 # Run posterior predictive check (the first samples of the posteriors take a bit of time)
 if __name__ == "__main__":
+    from sbipix import sbipix
+    # Initialize sbipix instance
+    sx= sbipix()
+    sx.parametric = True
+    sx.both_masses = True
     # Example usage with max SNR and random pixels
-    #posterior_predictive_check_sbipix(data_file="obs/six_galaxies_data.hdf5",
+    #posterior_predictive_check_sbipix(sx,data_file="obs/six_galaxies_data.hdf5",
     #                                   pixel_selections=['max_snr', 'random'],
     #                                   n_samples=500, save_fig=True)
     
     # Example with specific pixel indices
-    #posterior_predictive_check_sbipix(data_file="obs/six_galaxies_data.hdf5",
+    #posterior_predictive_check_sbipix(sx,data_file="obs/six_galaxies_data.hdf5",
     #                                   pixel_selections=[10, 25],
     #                                   n_samples=500, save_fig=True)
     
     # Example with mixed selection
-    posterior_predictive_check_sbipix(data_file="obs/six_galaxies_data.hdf5",galaxy_ids=[206146],pixel_selections=['max_snr', 'random',5],
+    posterior_predictive_check_sbipix(sx,data_file="obs/six_galaxies_data.hdf5",galaxy_ids=[206146],pixel_selections=['max_snr', 'random',5],
     n_samples=5,save_fig=False)
