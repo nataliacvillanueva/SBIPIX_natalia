@@ -17,7 +17,6 @@ import h5py
 import matplotlib as mpl
 import matplotlib.font_manager as fm
 import matplotlib.patches as patches
-from matplotlib_scalebar.scalebar import ScaleBar
 from scipy import stats
 from astropy.cosmology import FlatLambdaCDM
 import matplotlib.ticker as ticker
