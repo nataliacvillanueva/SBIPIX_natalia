@@ -409,10 +409,15 @@ class sbipix():
         Updates self.mag with processed photometry ready for training.
         """
         self.mag = np.zeros((self.n_simulation, len(self.obs[0,:]), 2))
+        randidx = random.sample(range(self.n_simulation), int(0.5*self.n_simulation))
 
         for j in trange(self.n_simulation, desc="Adding observational realism"):
             for i in range(len(self.obs[0,:])):
                 self.mag[j, i, :] = self._add_noise_nan_limit(self.obs[j][i], i)
+
+                if self.remove_filters is not None and i in self.remove_filters:
+                    if j in randidx:
+                        self.mag[j, i, :] = [0,0]
 
     def _add_noise_nan_limit(self, mag, filter_idx):
         """
