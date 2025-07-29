@@ -10,6 +10,7 @@ import sbi
 from sbi import utils as Ut
 from sbi import inference as Inference
 import pickle
+import random
 import seaborn as sns
 import sklearn.metrics as sm
 from scipy import stats
