@@ -168,6 +168,7 @@ class sbipix():
         self.model_name = "posteriors.pkl"
         self.infer_z = True
         self.infer_z_integrated = False
+        self.infer_onlyz = False 
         
         # Results storage
         self.means_test = None
@@ -536,11 +537,18 @@ class sbipix():
             # Initialize NPE
             anpe = Inference.SNPE(prior=bounds, density_estimator=maf_model, device=device)
 
-            # Add training data
-            anpe.append_simulations(
-                torch.as_tensor(self.theta[:n_max, :].astype(np.float32)).to(device),
-                torch.as_tensor(obs[:n_max, :].astype(np.float32)).to(device)
-            )
+            if self.infer_onlyz:
+                # Add training data
+                anpe.append_simulations(
+                    torch.as_tensor(self.theta[:n_max, -1:].astype(np.float32)).to(device),
+                    torch.as_tensor(obs[:n_max, :].astype(np.float32)).to(device)
+                )
+            else:
+                # Add training data
+                anpe.append_simulations(
+                    torch.as_tensor(self.theta[:n_max, :].astype(np.float32)).to(device),
+                    torch.as_tensor(obs[:n_max, :].astype(np.float32)).to(device)
+                )
         else:
             # Training without redshift inference
             lower_bounds = torch.tensor(min_thetas[:-1], dtype=torch.float32)
