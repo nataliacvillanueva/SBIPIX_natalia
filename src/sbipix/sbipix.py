@@ -319,9 +319,9 @@ class sbipix():
         atlas_seds = atlas['sed']
         
         # Apply filter removal if specified
-        if self.remove_filters is not None:
-            atlas_seds = atlas_seds[:, [i for i in range(len(atlas_seds[0,:]))
-                                       if i not in self.remove_filters]]
+        # if self.remove_filters is not None:
+        #     atlas_seds = atlas_seds[:, [i for i in range(len(atlas_seds[0,:]))
+        #                                if i not in self.remove_filters]]
         
         # Convert from microJy to AB magnitudes
         obs = -2.5 * np.log10(atlas_seds * 1e-6 / 3631)
@@ -390,11 +390,11 @@ class sbipix():
         #1 sigma depth limits for each filter
         self.limits=np.load(self.filter_path+'background_noise_hainline.npy') 
         
-        if self.remove_filters is not None:
-                self.mean_sigma_obs = self.mean_sigma_obs[:, [i for i in range(len(self.mean_sigma_obs[0,:])) if i not in self.remove_filters]]
-                self.stds_sigma_obs = self.stds_sigma_obs[:, [i for i in range(len(self.stds_sigma_obs[0,:])) if i not in self.remove_filters]]
-                self.percentiles = self.percentiles[:, [i for i in range(len(self.percentiles[0,:])) if i not in self.remove_filters]]
-                self.limits =   self.limits[[i for i in range(len(self.limits)) if i not in self.remove_filters]]
+        # if self.remove_filters is not None:
+        #         self.mean_sigma_obs = self.mean_sigma_obs[:, [i for i in range(len(self.mean_sigma_obs[0,:])) if i not in self.remove_filters]]
+        #         self.stds_sigma_obs = self.stds_sigma_obs[:, [i for i in range(len(self.stds_sigma_obs[0,:])) if i not in self.remove_filters]]
+        #         self.percentiles = self.percentiles[:, [i for i in range(len(self.percentiles[0,:])) if i not in self.remove_filters]]
+        #         self.limits =   self.limits[[i for i in range(len(self.limits)) if i not in self.remove_filters]]
 
         print('Observational features loaded')        
 
@@ -663,7 +663,7 @@ class sbipix():
         Parameters:
         - obs: numpy array
             Observed data.
-        - qphi: object
+        - qphi: object  
             Trained model for sampling.
         - n_samples: int, optional (default=1000)
             Number of samples to generate.

@@ -203,10 +203,16 @@ def plot_test_performance(sbipix_model, n_test=1000, n_theta=None, save=False,
         raise ValueError("No test results found. Run test_performance() first.")
     
     if n_theta is None:
-        n_theta = 8 if sbipix_model.infer_z else 7
+        if sbipix_model.infer_onlyz:
+            n_theta = 1
+        else:
+            n_theta = 8 if sbipix_model.infer_z else 7
 
     for i in range(n_theta):
-        p_true = sbipix_model.theta[:n_test, i]
+        if sbipix_model.infer_onlyz:
+            p_true = sbipix_model.theta[:n_test, -1]
+        else:
+            p_true = sbipix_model.theta[:n_test, i]
         p_pred = sbipix_model.means_test[:, i]
         
         g = sns.jointplot(x=p_true, y=p_pred, height=figsize[0], 
@@ -218,11 +224,18 @@ def plot_test_performance(sbipix_model, n_test=1000, n_theta=None, save=False,
         g.ax_joint.plot(x_range, x_range, '-r', label='y=x', linewidth=2)
         
         # Set labels
-        g.set_axis_labels(
-            sbipix_model.labels[i] + ' (true)', 
-            sbipix_model.labels[i] + ' (predicted)', 
-            fontsize=16
-        )
+        if sbipix_model.infer_onlyz:
+            g.set_axis_labels(
+                sbipix_model.labels[-1] + ' (true)', 
+                sbipix_model.labels[-1] + ' (predicted)', 
+                fontsize=16
+            )
+        else:
+            g.set_axis_labels(
+                sbipix_model.labels[i] + ' (true)', 
+                sbipix_model.labels[i] + ' (predicted)', 
+                fontsize=16
+            )
         
         # Add R² score
         r2_score = sm.r2_score(p_true, p_pred)
