@@ -695,7 +695,7 @@ class sbipix():
 
     def get_posteriors_resolved(self, phot_arr, n_gal, n_samples=50, save=True, 
                                return_stats=True, sigma_arr=None, bar=True, 
-                               input_z=None, device='cpu'):
+                               input_z=None, device='cpu', include_SNR=False, err_arr=None):
         """
         Generate posterior samples for resolved galaxy photometry.
 
@@ -720,11 +720,20 @@ class sbipix():
         device : str, optional
             Device for inference (default: 'cpu')
 
+        --included as additional options for pixel binning algorithm--
+        include_SNR : bool, optional
+            Whether to include SNR array in output (default: False)
+        err_arr : np.ndarray, optional
+            Array of photometric errors for SNR calculation (n_pixels, n_filters)
+
         Returns
         -------
         Various arrays depending on options selected
             Posterior samples, summary statistics, and coordinate information
         """
+        if include_SNR and err_arr is not None:
+            SNR_arr = phot_arr / err_arr
+
         # Apply detection limits and convert to magnitudes
         if self.include_limit:
             for i in range(len(phot_arr[0, :])):
@@ -805,5 +814,7 @@ class sbipix():
             return posteriors_full, means, stds, modes
         elif self.include_limit and not return_stats:
             return posteriors_full
+        elif return_stats and self.include_limit and include_SNR:
+            return posteriors_full, means, stds, modes, SNR_arr
         else:
             return posteriors_full, coords_ok
